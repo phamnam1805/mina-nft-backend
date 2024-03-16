@@ -18,6 +18,7 @@ import {
     PublicKey,
     Reducer,
     UInt64,
+    fetchAccount,
 } from 'o1js';
 import {
     UpdateMarketItemEvent,
@@ -251,8 +252,15 @@ export class NftContractService implements OnModuleInit {
             const nftContract = new NFT(
                 PublicKey.fromBase58(process.env.NFT_CONTRACT_ADDRESS),
             );
+            const account = await fetchAccount({
+                publicKey: privateKey.toPublicKey(),
+            });
             const tx = await Mina.transaction(
-                { sender: privateKey.toPublicKey(), fee: 1e8 },
+                {
+                    sender: privateKey.toPublicKey(),
+                    fee: 1e8,
+                    nonce: Number(account.account.nonce),
+                },
                 () => {
                     nftContract.buy(
                         Field(id),
@@ -277,8 +285,15 @@ export class NftContractService implements OnModuleInit {
             const nftContract = new NFT(
                 PublicKey.fromBase58(process.env.NFT_CONTRACT_ADDRESS),
             );
+            const account = await fetchAccount({
+                publicKey: privateKey.toPublicKey(),
+            });
             const tx = await Mina.transaction(
-                { sender: privateKey.toPublicKey(), fee: 1e8 },
+                {
+                    sender: privateKey.toPublicKey(),
+                    fee: 1e8,
+                    nonce: Number(account.account.nonce),
+                },
                 () => {
                     nftContract.createMarketItem(
                         Field(id),
