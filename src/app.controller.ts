@@ -96,7 +96,7 @@ export class AppController {
     }
 
     @ApiTags('Market')
-    @Get('/market/buy')
+    @Post('/market/buy')
     async buyMarketItem(
         @Body() buyMarketItemDto: BuyMarketItemDto,
     ): Promise<string> {
