@@ -271,4 +271,29 @@ export class NftContractService implements OnModuleInit {
             throw new BadRequestException(err);
         }
     }
+
+    async sell(privateKey: PrivateKey, id: number, price: number) {
+        try {
+            const nftContract = new NFT(
+                PublicKey.fromBase58(process.env.NFT_CONTRACT_ADDRESS),
+            );
+            const tx = await Mina.transaction(
+                { sender: privateKey.toPublicKey(), fee: 1e8 },
+                () => {
+                    nftContract.createMarketItem(
+                        Field(id),
+                        new UInt64(price),
+                        this._ownerStorage.getWitness(Field(id)),
+                        this._priceStorage.getWitness(Field(id)),
+                    );
+                },
+            );
+            await tx.prove();
+            const result = await tx.sign([privateKey]).send();
+            const txHash = result.hash;
+            return txHash;
+        } catch (err) {
+            throw new BadRequestException(err);
+        }
+    }
 }

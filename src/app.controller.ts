@@ -19,6 +19,7 @@ import { MarketItem } from './schemas/market-item.schema';
 import { Model } from 'mongoose';
 import { NftMetadata } from './schemas/nft-metadata.schema';
 import { BuyMarketItemDto } from './dtos/buy-market-item.dto';
+import { SellMarketItemDto } from './dtos/sell-market-item.dto';
 
 @Controller()
 export class AppController {
@@ -110,7 +111,35 @@ export class AppController {
             if (!exists) {
                 throw new BadRequestException();
             }
-            return this.nftContractService.buy(privateKey, buyMarketItemDto.id);
+            return await this.nftContractService.buy(
+                privateKey,
+                buyMarketItemDto.id,
+            );
+        } catch (err) {
+            throw new BadRequestException(err);
+        }
+    }
+
+    @ApiTags('Market')
+    @Post('/market/sell')
+    async sellMarketItem(
+        @Body() sellMarketItemDto: SellMarketItemDto,
+    ): Promise<string> {
+        try {
+            const privateKey = PrivateKey.fromBase58(
+                sellMarketItemDto.privateKey,
+            );
+            const exists = this.nftMetadataModel.exists({
+                id: sellMarketItemDto.id,
+            });
+            if (!exists) {
+                throw new BadRequestException();
+            }
+            return await this.nftContractService.sell(
+                privateKey,
+                sellMarketItemDto.id,
+                sellMarketItemDto.price,
+            );
         } catch (err) {
             throw new BadRequestException(err);
         }
