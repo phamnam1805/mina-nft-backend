@@ -7,8 +7,8 @@ import { ValidationPipe } from '@nestjs/common';
 async function bootstrap() {
     const app = await NestFactory.create(AppModule);
     const config = new DocumentBuilder()
-        .setTitle('Auxo server')
-        .setDescription('Server for auxo project')
+        .setTitle('Mina NFT server')
+        .setDescription('Server for Mina NFT project')
         .setVersion('0.0.1')
         .build();
     const document = SwaggerModule.createDocument(app, config);
