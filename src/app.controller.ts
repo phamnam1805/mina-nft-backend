@@ -12,12 +12,13 @@ import { CraftNftDto } from './dtos/craft-nft.dto';
 import { IpfsResponse } from './entities/ipfs-response.entity';
 import { MAX_NFT_ITEM } from './constants';
 import { NftContractService } from './nft-contract/nft-contract.service';
-import { Field } from 'o1js';
+import { Field, PrivateKey } from 'o1js';
 import { ApiTags } from '@nestjs/swagger';
 import { InjectModel } from '@nestjs/mongoose';
 import { MarketItem } from './schemas/market-item.schema';
 import { Model } from 'mongoose';
 import { NftMetadata } from './schemas/nft-metadata.schema';
+import { BuyMarketItemDto } from './dtos/buy-market-item.dto';
 
 @Controller()
 export class AppController {
@@ -92,6 +93,27 @@ export class AppController {
         return this.marketItemModel.find({
             price: { $gt: 0 },
         });
+    }
+
+    @ApiTags('Market')
+    @Get('/market/buy')
+    async buyMarketItem(
+        @Body() buyMarketItemDto: BuyMarketItemDto,
+    ): Promise<string> {
+        try {
+            const privateKey = PrivateKey.fromBase58(
+                buyMarketItemDto.privateKey,
+            );
+            const exists = this.marketItemModel.exists({
+                id: buyMarketItemDto.id,
+            });
+            if (!exists) {
+                throw new BadRequestException();
+            }
+            return this.nftContractService.buy(privateKey, buyMarketItemDto.id);
+        } catch (err) {
+            throw new BadRequestException(err);
+        }
     }
 
     @ApiTags('NFT')

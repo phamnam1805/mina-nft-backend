@@ -1,11 +1,24 @@
-import { Injectable, OnModuleInit, Redirect } from '@nestjs/common';
+import {
+    BadRequestException,
+    Injectable,
+    OnModuleInit,
+    Redirect,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { QueryService } from 'src/query/query.service';
 import { NftAction, getNftMetadata } from 'src/schemas/nft-action.schema';
 import { NftMetadata } from 'src/schemas/nft-metadata.schema';
 import { Action } from 'src/interfaces/action.interface';
-import { Field, PublicKey, Reducer, UInt64 } from 'o1js';
+import {
+    Cache,
+    Field,
+    Mina,
+    PrivateKey,
+    PublicKey,
+    Reducer,
+    UInt64,
+} from 'o1js';
 import {
     UpdateMarketItemEvent,
     getMarketItem,
@@ -15,6 +28,7 @@ import { MAX_NFT_ITEM } from 'src/constants';
 import {
     IpfsHashStorage,
     MarketItem,
+    NFT,
     OwnerStorage,
     PriceStorage,
 } from './nft-contract';
@@ -54,6 +68,7 @@ export class NftContractService implements OnModuleInit {
 
     async onModuleInit() {
         try {
+            await NFT.compile({ cache: Cache.FileSystem('./cache') });
             await this.update();
         } catch (err) {
             console.log(err);
@@ -226,6 +241,34 @@ export class NftContractService implements OnModuleInit {
                     PriceStorage.calculateLeaf(new UInt64(marketItem.price)),
                 );
             }
+        }
+    }
+
+    async buy(privateKey: PrivateKey, id: number): Promise<string> {
+        try {
+            const marketItem = await this.marketItemModel.findOne({ id: id });
+            const nftMetadata = await this.nftMetadataModel.findOne({ id: id });
+            const nftContract = new NFT(
+                PublicKey.fromBase58(process.env.NFT_CONTRACT_ADDRESS),
+            );
+            const tx = await Mina.transaction(
+                { sender: privateKey.toPublicKey(), fee: 1e8 },
+                () => {
+                    nftContract.buy(
+                        Field(id),
+                        new UInt64(marketItem.price),
+                        this._priceStorage.getWitness(Field(id)),
+                        PublicKey.fromBase58(nftMetadata.owner),
+                        this._ownerStorage.getWitness(Field(id)),
+                    );
+                },
+            );
+            await tx.prove();
+            const result = await tx.sign([privateKey]).send();
+            const txHash = result.hash;
+            return txHash;
+        } catch (err) {
+            throw new BadRequestException(err);
         }
     }
 }
